@@ -17,6 +17,9 @@ package com.google.auto.value;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
+import static java.util.Comparator.comparing;
+import static java.util.Comparator.naturalOrder;
+import static java.util.Comparator.reverseOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -36,6 +39,11 @@ import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.ImmutableTable;
 import com.google.common.testing.EqualsTester;
 import com.google.common.testing.SerializableTester;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+
 import java.io.ObjectStreamClass;
 import java.io.Serializable;
 import java.lang.annotation.Annotation;
@@ -52,6 +60,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -3475,5 +3484,64 @@ public class AutoValueTest {
     BuilderAnnotationsCopied.Builder builder = BuilderAnnotationsCopied.builder();
     assertThat(builder.getClass().getAnnotations()).asList().containsExactly(myAnnotation("thing"));
     assertThat(builder.setFoo("foo").build().foo()).isEqualTo("foo");
+  }
+
+  @AutoValue
+  abstract static class DataWithSortedCollectionBuilders<K, V> {
+    abstract ImmutableSortedMap<K, V> anImmutableSortedMap();
+
+    abstract ImmutableSortedSet<V> anImmutableSortedSet();
+
+    abstract ImmutableSortedMap<Integer, V> nonGenericImmutableSortedMap();
+
+    abstract ImmutableSortedSet nonGenericImmutableSortedSet();
+
+    static <K, V> Builder<K, V> builder() {
+      return new AutoValue_AutoValueTest_DataWithSortedCollectionBuilders.Builder<K, V>();
+    }
+
+    @AutoValue.Builder
+    abstract static class Builder<K, V> {
+      abstract Builder<K, V> anImmutableSortedMap(SortedMap<K, V> anImmutableSortedMap);
+
+      abstract ImmutableSortedMap.Builder<K, V> anImmutableSortedMapBuilder(Comparator<K> keyComparator);
+
+      abstract Builder<K, V> anImmutableSortedSet(SortedSet<V> anImmutableSortedSet);
+
+      abstract ImmutableSortedSet.Builder<V> anImmutableSortedSetBuilder(Comparator<V> comparator);
+
+      abstract ImmutableSortedMap.Builder<Integer, V> nonGenericImmutableSortedMapBuilder(Comparator<Integer> keyComparator);
+
+      abstract ImmutableSortedSet.Builder nonGenericImmutableSortedSetBuilder(Comparator comparator);
+
+      abstract DataWithSortedCollectionBuilders<K, V> build();
+    }
+
+
+  }
+
+  @Test
+  public void shouldGenerateBuildersWithComparators() {
+    //given
+    DataWithSortedCollectionBuilders.Builder<String, Integer> builder = DataWithSortedCollectionBuilders.builder();
+
+    //when
+    builder.anImmutableSortedMapBuilder(naturalOrder())
+            .put("Charlie", 1).put("Alfa", 2).put("Bravo", 3);
+    builder.anImmutableSortedSetBuilder(reverseOrder())
+            .addAll(Set.of(1, 5, 9, 3));
+    builder.nonGenericImmutableSortedMapBuilder(naturalOrder())
+            .put(9, 99).put(1, 11).put(3, 33);
+    builder.nonGenericImmutableSortedSetBuilder(comparing(Object::toString).reversed())
+            .add("Bravo", "Charlie", "Alfa");
+
+
+    DataWithSortedCollectionBuilders data = builder.build();
+
+    //then
+    assertThat(data.anImmutableSortedMap().keySet()).containsExactly("Alfa", "Bravo", "Charlie").inOrder();
+    assertThat(data.anImmutableSortedSet()).containsExactly(9, 5, 3, 1).inOrder();
+    assertThat(data.nonGenericImmutableSortedMap().keySet()).containsExactly(1, 3, 9).inOrder();
+    assertThat(data.nonGenericImmutableSortedSet()).containsExactly("Bravo", "Charlie", "Alfa").inOrder();
   }
 }
