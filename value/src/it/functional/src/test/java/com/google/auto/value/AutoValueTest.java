@@ -3544,6 +3544,6 @@ public class AutoValueTest {
     assertThat(data.anImmutableSortedMap().keySet()).containsExactly("Alfa", "Bravo", "Charlie").inOrder();
     assertThat(data.anImmutableSortedSet()).containsExactly(9, 5, 3, 1).inOrder();
     assertThat(data.nonGenericImmutableSortedMap().keySet()).containsExactly(1, 3, 9).inOrder();
-    assertThat(data.nonGenericImmutableSortedSet()).containsExactly("Bravo", "Charlie", "Alfa").inOrder();
+    assertThat(data.nonGenericImmutableSortedSet()).containsExactly("Charlie", "Bravo", "Alfa").inOrder();
   }
 }
